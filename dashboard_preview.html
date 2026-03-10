@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InvenTrack — Live Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
+      border-bottom: 1px solid #2d3748;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { font-size: 28px; }
+    .logo h1 { font-size: 22px; font-weight: 700; color: #63b3ed; }
+    .logo p  { font-size: 12px; color: #718096; margin-top: 2px; }
+    .live-badge {
+      background: #22543d; color: #68d391;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .live-dot {
+      width: 8px; height: 8px;
+      background: #68d391; border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+
+    .stats-bar {
+      display: flex; gap: 20px;
+      padding: 20px 32px;
+      background: #141820;
+      border-bottom: 1px solid #2d3748;
+    }
+    .stat-card {
+      background: #1a1f2e; border: 1px solid #2d3748;
+      border-radius: 10px; padding: 14px 24px;
+      text-align: center; min-width: 120px;
+    }
+    .stat-value { font-size: 28px; font-weight: 700; }
+    .stat-label { font-size: 11px; color: #718096; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-total  .stat-value { color: #63b3ed; }
+    .stat-in     .stat-value { color: #68d391; }
+    .stat-out    .stat-value { color: #fc8181; }
+    .stat-scanners .stat-value { color: #f6ad55; }
+
+    main { padding: 28px 32px; }
+    h2 { font-size: 16px; color: #a0aec0; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+    .tool-card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 18px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .tool-card:hover { transform: translateY(-2px); border-color: #4a5568; }
+    .tool-card.out  { border-left: 4px solid #fc8181; }
+    .tool-card.in   { border-left: 4px solid #68d391; }
+
+    .tool-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .tool-name { font-size: 16px; font-weight: 700; }
+    .status-badge {
+      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    }
+    .badge-in  { background: #1c4532; color: #68d391; }
+    .badge-out { background: #3d1515; color: #fc8181; }
+
+    .tool-meta { font-size: 12px; color: #718096; }
+    .tool-meta div { margin-top: 5px; display: flex; justify-content: space-between; }
+    .rssi-bar-wrap { margin-top: 12px; }
+    .rssi-label { font-size: 11px; color: #718096; display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .rssi-bar { background: #2d3748; border-radius: 4px; height: 6px; overflow: hidden; }
+    .rssi-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+    .fill-in  { background: linear-gradient(90deg, #48bb78, #68d391); }
+    .fill-out { background: linear-gradient(90deg, #e53e3e, #fc8181); }
+
+    .event-log { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; overflow: hidden; }
+    .event-log-header { padding: 14px 20px; background: #141820; border-bottom: 1px solid #2d3748; font-size: 13px; color: #a0aec0; font-weight: 600; }
+    .log-entry { display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid #1e2535; font-size: 13px; }
+    .log-entry:last-child { border-bottom: none; }
+    .log-time  { color: #718096; min-width: 120px; }
+    .log-asset { font-weight: 600; min-width: 80px; }
+    .log-zone  { color: #a0aec0; flex: 1; }
+    .log-rssi  { color: #f6ad55; min-width: 70px; }
+    .log-status { min-width: 100px; }
+
+    footer {
+      text-align: center; padding: 20px;
+      color: #4a5568; font-size: 12px;
+      border-top: 1px solid #2d3748;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">📦</span>
+    <div>
+      <h1>InvenTrack</h1>
+      <p>BLE Asset Monitoring Dashboard</p>
+    </div>
+  </div>
+  <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-card stat-total">
+    <div class="stat-value" id="total-count">8</div>
+    <div class="stat-label">Total Assets</div>
+  </div>
+  <div class="stat-card stat-in">
+    <div class="stat-value" id="in-count">6</div>
+    <div class="stat-label">In Zone</div>
+  </div>
+  <div class="stat-card stat-out">
+    <div class="stat-value" id="out-count">2</div>
+    <div class="stat-label">Out of Range</div>
+  </div>
+  <div class="stat-card stat-scanners">
+    <div class="stat-value">3</div>
+    <div class="stat-label">Scanners Active</div>
+  </div>
+</div>
+
+<main>
+  <h2>Asset Status</h2>
+  <div class="tool-grid" id="tool-grid"></div>
+
+  <h2>Recent Events</h2>
+  <div class="event-log">
+    <div class="event-log-header">📋 Event Log (Last 24 hours)</div>
+    <div id="event-log-body"></div>
+  </div>
+</main>
+
+<footer>InvenTrack v1.0 — BLE Asset Monitoring System &nbsp;|&nbsp; Powered by n8n &amp; Raspberry Pi Pico 2W</footer>
+
+<script>
+  // Demo data — in production, fetch this from your n8n API or Google Sheets
+  const assets = [
+    { id: "Tool_01", zone: "Ware House",   rssi: -62, threshold: -75, scanner: "Scanner_01", status: "IN_RANGE",    mac: "A4:C1:38:7B:91:11" },
+    { id: "Tool_02", zone: "Ware House",   rssi: -70, threshold: -75, scanner: "Scanner_01", status: "IN_RANGE",    mac: "A4:C1:38:7B:91:12" },
+    { id: "Tool_03", zone: "Assembly Bay", rssi: -68, threshold: -75, scanner: "Scanner_02", status: "IN_RANGE",    mac: "A4:C1:38:7B:91:13" },
+    { id: "Tool_04", zone: "Assembly Bay", rssi: -80, threshold: -75, scanner: "Scanner_02", status: "OUT_OF_RANGE", mac: "A4:C1:38:7B:91:14" },
+    { id: "Tool_05", zone: "Lab Room",     rssi: -55, threshold: -75, scanner: "Scanner_03", status: "IN_RANGE",    mac: "A4:C1:38:7B:91:15" },
+    { id: "Tool_06", zone: "Lab Room",     rssi: -71, threshold: -75, scanner: "Scanner_03", status: "IN_RANGE",    mac: "A4:C1:38:7B:91:16" },
+    { id: "Tool_07", zone: "Ware House",   rssi: -90, threshold: -75, scanner: "Scanner_01", status: "OUT_OF_RANGE", mac: "A4:C1:38:7B:91:22" },
+    { id: "Tool_08", zone: "Assembly Bay", rssi: -60, threshold: -75, scanner: "Scanner_02", status: "IN_RANGE",    mac: "A4:C1:38:7B:91:18" },
+  ];
+
+  const events = [
+    { time: "2026-02-28 12:48", asset: "Tool_07", zone: "Ware House",   rssi: -90, status: "OUT_OF_RANGE" },
+    { time: "2026-02-28 12:45", asset: "Tool_04", zone: "Assembly Bay", rssi: -80, status: "OUT_OF_RANGE" },
+    { time: "2026-02-28 12:30", asset: "Tool_04", zone: "Assembly Bay", rssi: -72, status: "IN_RANGE" },
+    { time: "2026-02-28 11:50", asset: "Tool_07", zone: "Ware House",   rssi: -73, status: "IN_RANGE" },
+    { time: "2026-02-28 10:15", asset: "Tool_02", zone: "Ware House",   rssi: -69, status: "IN_RANGE" },
+  ];
+
+  // Render tool cards
+  function rssiPercent(rssi) {
+    // Map -40 (strong) to -100 (weak) → 100% to 0%
+    return Math.max(0, Math.min(100, ((rssi + 100) / 60) * 100));
+  }
+
+  const grid = document.getElementById("tool-grid");
+  assets.forEach(t => {
+    const isOut = t.status === "OUT_OF_RANGE";
+    const pct   = rssiPercent(t.rssi);
+    grid.innerHTML += `
+      <div class="tool-card ${isOut ? 'out' : 'in'}">
+        <div class="tool-header">
+          <div class="tool-name">🔧 ${t.id}</div>
+          <div class="status-badge ${isOut ? 'badge-out' : 'badge-in'}">${isOut ? '⚠ OUT OF RANGE' : '✓ IN ZONE'}</div>
+        </div>
+        <div class="tool-meta">
+          <div><span>Zone</span><span>${t.zone}</span></div>
+          <div><span>Scanner</span><span>${t.scanner}</span></div>
+          <div><span>MAC</span><span>${t.mac}</span></div>
+        </div>
+        <div class="rssi-bar-wrap">
+          <div class="rssi-label"><span>Signal Strength</span><span>${t.rssi} dBm</span></div>
+          <div class="rssi-bar">
+            <div class="rssi-fill ${isOut ? 'fill-out' : 'fill-in'}" style="width:${pct}%"></div>
+          </div>
+        </div>
+      </div>`;
+  });
+
+  // Render event log
+  const logBody = document.getElementById("event-log-body");
+  events.forEach(e => {
+    const isOut = e.status === "OUT_OF_RANGE";
+    logBody.innerHTML += `
+      <div class="log-entry">
+        <span class="log-time">🕐 ${e.time}</span>
+        <span class="log-asset">${e.asset}</span>
+        <span class="log-zone">${e.zone}</span>
+        <span class="log-rssi">${e.rssi} dBm</span>
+        <span class="log-status">
+          <span class="status-badge ${isOut ? 'badge-out' : 'badge-in'}">${isOut ? '⚠ OUT' : '✓ IN'}</span>
+        </span>
+      </div>`;
+  });
+</script>
+</body>
+</html>

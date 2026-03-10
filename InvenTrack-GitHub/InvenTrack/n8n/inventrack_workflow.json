@@ -1,0 +1,143 @@
+{
+  "name": "Invenrack",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pico-test",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "pico-webhook",
+      "name": "PICO",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [520, 350]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "rssi-check",
+              "leftValue": "={{ $json.rssi }}",
+              "rightValue": "={{ $json.threshold_rssi }}",
+              "operator": { "type": "number", "operation": "lt" }
+            }
+          ]
+        }
+      },
+      "id": "if-rssi",
+      "name": "IF (RSSI < threshold)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 350]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('PICO').item.json.alert_email ?? 'your-email@gmail.com' }}",
+        "subject": "=🚨 InvenTrack Alert - {{ $('PICO').item.json.asset_id }} is OUT OF RANGE",
+        "message": "=Tool Alert Detected\n\nAsset: {{ $('PICO').item.json.asset_id }}\nScanner: {{ $('PICO').item.json.scanner_id }}\nZone: {{ $('PICO').item.json.zone }}\nRSSI: {{ $('PICO').item.json.rssi }} dBm\nThreshold: {{ $('PICO').item.json.threshold_rssi }}\nStatus: {{ $('PICO').item.json.status }}\nTime: {{ $('PICO').item.json.timestamp }}\n\nSystem: InvenTrack BLE Monitoring",
+        "options": {}
+      },
+      "id": "gmail-alert",
+      "name": "Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [916, 177]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=*Tool Alert Detected*\n\nAsset: {{ $('PICO').item.json.asset_id }}\nScanner: {{ $('PICO').item.json.scanner_id }}\nZone: {{ $('PICO').item.json.zone }}\nRSSI: {{ $('PICO').item.json.rssi }} dBm\nThreshold: {{ $('PICO').item.json.threshold_rssi }}\nStatus: {{ $('PICO').item.json.status }}\nTime: {{ $('PICO').item.json.timestamp }}\n\nSystem: InvenTrack BLE Monitoring",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "telegram-alert",
+      "name": "Send a text message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [916, 307]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "status", "value": "OUT_OF_RANGE", "type": "string" }
+          ]
+        }
+      },
+      "id": "out-of-range",
+      "name": "OUT_OF_RANGE",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [916, 450]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s2", "name": "status", "value": "IN_RANGE", "type": "string" }
+          ]
+        }
+      },
+      "id": "in-range",
+      "name": "IN_RANGE",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [916, 560]
+    },
+    {
+      "parameters": {
+        "documentId": { "value": "YOUR_GOOGLE_SHEET_ID" },
+        "sheetName": { "value": "Sheet1" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Scanner":   "={{ $('PICO').item.json.scanner_id }}",
+            "Asset":     "={{ $('PICO').item.json.asset_id }}",
+            "RSSI":      "={{ $('PICO').item.json.rssi }}",
+            "Threshold": "={{ $('PICO').item.json.threshold_rssi }}",
+            "Status":    "={{ $('PICO').item.json.status }}",
+            "Zone":      "={{ $('PICO').item.json.zone }}"
+          }
+        }
+      },
+      "id": "sheets-log",
+      "name": "InvenTrack_Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1122, 493]
+    }
+  ],
+  "connections": {
+    "PICO": {
+      "main": [[{ "node": "IF (RSSI < threshold)", "type": "main", "index": 0 }]]
+    },
+    "IF (RSSI < threshold)": {
+      "main": [
+        [
+          { "node": "Alert", "type": "main", "index": 0 },
+          { "node": "Send a text message", "type": "main", "index": 0 },
+          { "node": "OUT_OF_RANGE", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "IN_RANGE", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "OUT_OF_RANGE": {
+      "main": [[{ "node": "InvenTrack_Log", "type": "main", "index": 0 }]]
+    },
+    "IN_RANGE": {
+      "main": [[{ "node": "InvenTrack_Log", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "versionId": "inventrack-v1"
+}

@@ -1,0 +1,22 @@
+# Credentials — NEVER commit these
+*.env
+secrets.py
+credentials.json
+token.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# MicroPython compiled
+*.mpy
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
